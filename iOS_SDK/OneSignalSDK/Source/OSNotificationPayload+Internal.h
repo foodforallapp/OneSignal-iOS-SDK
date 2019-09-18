@@ -31,7 +31,7 @@
 #define OSNotificationPayload_Internal_h
 
 @interface OSNotificationPayload (Internal)
-+(instancetype)parseWithApns:(nonnull NSDictionary*)message;
++(instancetype)parseWithApns:(NSDictionary*)message;
 @end
 
 #endif /* OSNotificationPayload_Internal_h */
