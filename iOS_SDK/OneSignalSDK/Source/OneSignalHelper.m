@@ -38,7 +38,6 @@
 #import "NSURL+OneSignal.h"
 #import "OneSignalCommonDefines.h"
 #import "OneSignalDialogController.h"
-#import "OSMessagingController.h"
 #import "OneSignalNotificationCategoryController.h"
 
 #define NOTIFICATION_TYPE_ALL 7
@@ -52,13 +51,13 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 
+
 @interface DirectDownloadDelegate : NSObject <NSURLSessionDataDelegate> {
     NSError* error;
     NSURLResponse* response;
     BOOL done;
     NSFileHandle* outputHandle;
 }
-
 @property (readonly, getter=isDone) BOOL done;
 @property (readonly) NSError* error;
 @property (readonly) NSURLResponse* response;
@@ -156,7 +155,8 @@
 @end
 
 @implementation OSNotification
-@synthesize payload = _payload, shown = _shown, isAppInFocus = _isAppInFocus, silentNotification = _silentNotification, displayType = _displayType, mutableContent = _mutableContent;
+@synthesize payload = _payload, shown = _shown, isAppInFocus = _isAppInFocus, silentNotification = _silentNotification, displayType = _displayType;
+@synthesize mutableContent = _mutableContent;
 
 - (id)initWithPayload:(OSNotificationPayload *)payload displayType:(OSNotificationDisplayType)displayType {
     self = [super init];
@@ -405,9 +405,8 @@ OSHandleNotificationActionBlock handleNotificationAction;
     if ([payload.notificationID isEqualToString:lastMessageID])
         return;
     lastMessageID = payload.notificationID;
-
-    if (![self handleIAMPreview:payload] && handleNotificationReceived)
-        handleNotificationReceived(notification);
+    
+    handleNotificationReceived(notification);
 }
 
 static NSString *_lastMessageIdFromAction;
@@ -433,16 +432,6 @@ static NSString *_lastMessageIdFromAction;
     handleNotificationAction(result);
 }
 
-+ (BOOL)handleIAMPreview:(OSNotificationPayload *)payload {
-    NSString *uuid = [payload additionalData][ONESIGNAL_IAM_PREVIEW];
-    if (uuid) {
-        OSInAppMessage *message = [OSInAppMessage instancePreviewFromPayload:payload];
-        [[OSMessagingController sharedInstance] presentInAppPreviewMessage:message];
-        return YES;
-    }
-    return NO;
-}
-
 +(NSNumber*)getNetType {
     OneSignalReachability* reachability = [OneSignalReachability reachabilityForInternetConnection];
     NetworkStatus status = [reachability currentReachabilityStatus];
@@ -451,24 +440,12 @@ static NSString *_lastMessageIdFromAction;
     return @1;
 }
 
-+ (NSString *)getCurrentDeviceVersion {
-    return [[UIDevice currentDevice] systemVersion];
-}
-
-+ (BOOL)isIOSVersionGreaterThanOrEqual:(NSString *)version {
-    return [[self getCurrentDeviceVersion] compare:version options:NSNumericSearch] != NSOrderedAscending;
-}
-
-+ (BOOL)isIOSVersionLessThan:(NSString *)version {
-    return [[self getCurrentDeviceVersion] compare:version options:NSNumericSearch] == NSOrderedAscending;
-}
-
 // Can call currentUserNotificationSettings
 + (BOOL) canGetNotificationTypes {
-    return [self isIOSVersionGreaterThanOrEqual:@"8.0"];
+    return [OneSignalHelper isIOSVersionGreaterOrEqual:8];
 }
 
-// For iOS 8 and 9
+// For iOS 9 and 8
 + (UILocalNotification*)createUILocalNotification:(OSNotificationPayload*)payload {
     let notification = [UILocalNotification new];
     
@@ -542,6 +519,10 @@ static OneSignal* singleInstance = nil;
     return singleInstance;
 }
 
++ (BOOL)isIOSVersionGreaterOrEqual:(float)version {
+    return [[[UIDevice currentDevice] systemVersion] floatValue] >= version;
+}
+
 +(NSString*)randomStringWithLength:(int)length {
     let letters = @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let randomString = [[NSMutableString alloc] initWithCapacity:length];
@@ -552,6 +533,8 @@ static OneSignal* singleInstance = nil;
     }
     return randomString;
 }
+
+#if XC8_AVAILABLE
 
 + (void)registerAsUNNotificationCenterDelegate {
     let curNotifCenter = [UNUserNotificationCenter currentNotificationCenter];
@@ -617,7 +600,7 @@ static OneSignal* singleInstance = nil;
     var allCategories = OneSignalNotificationCategoryController.sharedInstance.existingCategories;
     
     let newCategoryIdentifier = [OneSignalNotificationCategoryController.sharedInstance registerNotificationCategoryForNotificationId:payload.notificationID];
-
+    
     let category = [UNNotificationCategory categoryWithIdentifier:newCategoryIdentifier
                                                           actions:finalActionArray
                                                 intentIdentifiers:@[]
@@ -819,6 +802,8 @@ static OneSignal* singleInstance = nil;
      */
 }
 
+#endif
+
 + (BOOL)verifyURL:(NSString *)urlString {
     if (urlString) {
         NSURL* url = [NSURL URLWithString:urlString];
@@ -939,10 +924,6 @@ static OneSignal* singleInstance = nil;
         return url;
     
     return [url stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-}
-
-+ (BOOL)isTablet {
-    return UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad;
 }
 
 #pragma clang diagnostic pop

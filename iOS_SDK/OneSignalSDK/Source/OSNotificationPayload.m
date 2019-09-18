@@ -33,7 +33,7 @@
 
 @implementation OSNotificationPayload
 
-+(instancetype)parseWithApns:(nonnull NSDictionary*)message {
++(instancetype)parseWithApns:(NSDictionary*)message {
     if (!message)
         return nil;
     

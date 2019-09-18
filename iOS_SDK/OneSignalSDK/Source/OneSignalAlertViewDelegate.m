@@ -25,7 +25,6 @@
  * THE SOFTWARE.
  */
 
-#import "OneSignalCommonDefines.h"
 #import "OneSignalAlertViewDelegate.h"
 #import "OneSignal.h"
 #import "OneSignalHelper.h"
@@ -35,20 +34,20 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 @interface OneSignal ()
-
 + (void)handleNotificationOpened:(NSDictionary*)messageDict
                         isActive:(BOOL)isActive
                       actionType:(OSNotificationActionType)actionType
                      displayType:(OSNotificationDisplayType)displayType;
-
 @end
+
 
 @implementation OneSignalAlertView
 
 + (void)showInAppAlert:(NSDictionary*)messageDict {
     let payload = [OSNotificationPayload parseWithApns:messageDict];
     
-    id oneSignalAlertViewDelegate = [[OneSignalAlertViewDelegate alloc] initWithMessageDict:messageDict];
+    id oneSignalAlertViewDelegate = [[OneSignalAlertViewDelegate alloc]
+                                         initWithMessageDict:messageDict];
 
     let alertView = [[UIAlertView alloc]
                      initWithTitle:payload.title
@@ -56,17 +55,16 @@
                      delegate:oneSignalAlertViewDelegate
                      cancelButtonTitle:NSLocalizedString(@"Close", nil)
                      otherButtonTitles:nil, nil];
-    
-    // Add action buttons to payload
+    // Add Buttons
     if (payload.actionButtons) {
         for(id button in payload.actionButtons)
             [alertView addButtonWithTitle:button[@"text"]];
     }
-    
+
     [alertView show];
     
     // Message received that was displayed (Foreground + InAppAlert is true)
-    // Call received callback
+    // Call Received Block
     [OneSignalHelper handleNotificationReceived:OSNotificationDisplayTypeInAppAlert];
 }
 
@@ -77,10 +75,8 @@
 
 NSDictionary* mMessageDict;
 
-/*
- delegateReference exist to keep ARC from cleaning up this object when it goes out of scope.
- This is becuase UIAlertView delegate is set to weak instead of strong
- */
+// delegateReference exist to keep ARC from cleaning up this object when it goes out of scope.
+// This is becuase UIAlertView delegate is set to weak instead of strong
 static NSMutableArray* delegateReference;
 
 - (id)initWithMessageDict:(NSDictionary*)messageDict {
@@ -104,7 +100,7 @@ static NSMutableArray* delegateReference;
         
         NSMutableDictionary* userInfo = [mMessageDict mutableCopy];
         
-        // Fixed for iOS 7, which has 'actionbuttons' as a root property of the dict, not in 'os_data'
+        //fixed for iOS 7, which has 'actionbuttons' as a root property of the dict, not in 'os_data'
         if (mMessageDict[@"os_data"] && !mMessageDict[@"actionbuttons"]) {
             if ([mMessageDict[@"os_data"][@"buttons"] isKindOfClass:[NSDictionary class]])
                 userInfo[@"actionSelected"] = mMessageDict[@"os_data"][@"buttons"][@"o"][buttonIndex - 1][@"i"];
